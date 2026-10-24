@@ -1,0 +1,21 @@
+Date: 2026-10-24
+
+Architecture: domain modules with lightweight internal layers
+Backend modules: common, system, chat, document, interview, knowledge, report
+Active implementation: common, system, chat
+
+Prompt resources:
+- prompts/common/system-rules.st
+- prompts/chat/answer.st
+
+Prompt access:
+- PromptCatalog: validation, loading, caching and variable rendering
+- ChatPrompts: typed chat-specific access and shared-rule composition
+- ChatStreamingService: model orchestration only
+
+Verification:
+- mvn clean test: 11 tests, 0 failures, 0 errors, 1 skipped
+- Real DeepSeek test: 1 test passed
+- HTTP SSE: 200 text/event-stream, 8 delta events and 1 done event
+- Browser: two consecutive requests passed; send button restored
+- Public REST paths and SSE payload format unchanged

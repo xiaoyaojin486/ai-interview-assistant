@@ -1,4 +1,4 @@
-package com.example.interviewassistant.controller;
+package com.example.interviewassistant.system.api;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;

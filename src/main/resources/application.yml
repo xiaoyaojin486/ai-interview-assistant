@@ -1,7 +1,20 @@
 spring:
+  config:
+    # 从项目根目录读取本地密钥；.env 已被 Git 忽略。
+    import: optional:file:./.env[.properties]
   application:
     # 当前应用名称，后续会在日志和监控信息中使用。
     name: interview-assistant
+  ai:
+    model:
+      # 当前只有一个聊天模型，显式指定可以避免后续增加模型时产生歧义。
+      chat: deepseek
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.2
 
 server:
   # 首版只在当前电脑访问，不直接暴露到局域网或公网。

@@ -1,0 +1,20 @@
+Date: 2026-10-24
+URL: http://127.0.0.1:8081/stream-demo.html
+
+First request:
+Prompt: 请用三句话解释 Spring AI，每句单独成行。
+Result: 回答完成
+Send button restored: yes
+
+Second request:
+Prompt: 只回答：第二次流式测试成功。
+Result: 第二次流式测试成功。
+Send button restored: yes
+
+Page screenshot: stream-demo-complete.png
+
+After project structure migration:
+First request: 方案 A 浏览器验证成功。
+Second request: 第二次发送正常。
+Send button restored after first request: yes
+Page screenshot: stream-demo-after-structure.png

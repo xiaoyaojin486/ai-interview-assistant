@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepSeek 流式输出验证</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            color: #172033;
+            background: #eef3f8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 32px 18px;
+            background:
+                radial-gradient(circle at top left, #dcecff 0, transparent 36%),
+                linear-gradient(145deg, #eef3f8, #f8fafc);
+        }
+
+        main {
+            width: min(820px, 100%);
+            padding: 28px;
+            border: 1px solid #d9e2ec;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 20px 60px rgba(41, 65, 102, 0.14);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(24px, 4vw, 34px);
+        }
+
+        .intro {
+            margin: 0 0 22px;
+            color: #5a687d;
+            line-height: 1.7;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 110px;
+            padding: 14px 16px;
+            resize: vertical;
+            border: 1px solid #b9c8da;
+            border-radius: 12px;
+            color: inherit;
+            background: #fbfdff;
+            font: inherit;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: 3px solid rgba(29, 112, 223, 0.18);
+            border-color: #1d70df;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 14px 0 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: 0;
+            border-radius: 10px;
+            color: white;
+            background: #1769d2;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1058b4;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.6;
+        }
+
+        #status {
+            color: #5a687d;
+            font-size: 14px;
+        }
+
+        #status.error {
+            color: #b42318;
+        }
+
+        .result {
+            min-height: 180px;
+            padding: 18px;
+            border: 1px solid #d9e2ec;
+            border-radius: 14px;
+            background: #f7faff;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .placeholder {
+            color: #8491a3;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>DeepSeek 浏览器流式输出</h1>
+    <p class="intro">
+        这个页面只用于验证临时流式链路。发送问题后，回答会通过 SSE 分段追加；
+        响应结束或出错后，可以再次发送。
+    </p>
+
+    <form id="chat-form">
+        <label for="message">你的问题</label>
+        <textarea id="message" name="message"
+                  placeholder="例如：用三句话解释 Spring AI"></textarea>
+        <div class="actions">
+            <button id="send-button" type="submit">发送</button>
+            <span id="status" role="status" aria-live="polite">等待发送</span>
+        </div>
+    </form>
+
+    <section id="result" class="result" aria-live="polite">
+        <span class="placeholder">回复将在这里逐段出现。</span>
+    </section>
+</main>
+
+<script>
+    const form = document.querySelector("#chat-form");
+    const messageInput = document.querySelector("#message");
+    const sendButton = document.querySelector("#send-button");
+    const statusText = document.querySelector("#status");
+    const result = document.querySelector("#result");
+
+    function setStatus(text, isError = false) {
+        statusText.textContent = text;
+        statusText.classList.toggle("error", isError);
+    }
+
+    function resetResult() {
+        result.textContent = "";
+        result.classList.remove("placeholder");
+    }
+
+    function appendDelta(text) {
+        result.textContent += text;
+    }
+
+    function handleEvent(block) {
+        let eventName = "message";
+        const dataLines = [];
+
+        for (const line of block.split("\n")) {
+            if (line.startsWith("event:")) {
+                eventName = line.slice(6).trim();
+            } else if (line.startsWith("data:")) {
+                dataLines.push(line.slice(5).trimStart());
+            }
+        }
+
+        if (dataLines.length === 0) {
+            return;
+        }
+
+        let payload;
+        try {
+            payload = JSON.parse(dataLines.join("\n"));
+        } catch {
+            setStatus("收到无法识别的流式数据", true);
+            return;
+        }
+
+        if (eventName === "delta" && typeof payload.text === "string") {
+            appendDelta(payload.text);
+        } else if (eventName === "done") {
+            setStatus("回答完成");
+        } else if (eventName === "error") {
+            setStatus(payload.message || "模型响应失败", true);
+        }
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const message = messageInput.value.trim();
+        if (!message) {
+            setStatus("请先输入问题", true);
+            messageInput.focus();
+            return;
+        }
+
+        sendButton.disabled = true;
+        resetResult();
+        setStatus("正在连接 DeepSeek…");
+
+        try {
+            const response = await fetch("/api/chat/stream", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "text/event-stream"
+                },
+                body: JSON.stringify({message})
+            });
+
+            if (!response.ok) {
+                throw new Error(`请求失败（HTTP ${response.status}）`);
+            }
+
+            if (!response.body) {
+                throw new Error("浏览器未提供可读取的响应流");
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const {done, value} = await reader.read();
+                buffer += decoder.decode(value || new Uint8Array(), {stream: !done});
+                buffer = buffer.replaceAll("\r\n", "\n");
+
+                const blocks = buffer.split("\n\n");
+                buffer = blocks.pop() || "";
+                blocks.forEach(handleEvent);
+
+                if (done) {
+                    break;
+                }
+            }
+
+            if (buffer.trim()) {
+                handleEvent(buffer);
+            }
+        } catch (error) {
+            setStatus(error.message || "网络请求失败，请稍后重试", true);
+        } finally {
+            sendButton.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

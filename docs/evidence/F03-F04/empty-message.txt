@@ -1,0 +1,8 @@
+Date: 2026-10-24
+
+Request: POST /api/chat/stream
+Body: {"message":"   "}
+HTTP status: 400
+
+The controller unit test also verifies that ChatStreamingService is not called
+for a blank message.

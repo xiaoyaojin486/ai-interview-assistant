@@ -1,0 +1,26 @@
+event:delta
+data:{"text":"SS"}
+
+event:delta
+data:{"text":"E"}
+
+event:delta
+data:{"text":" "}
+
+event:delta
+data:{"text":"证据"}
+
+event:delta
+data:{"text":"记录"}
+
+event:delta
+data:{"text":"测试"}
+
+event:delta
+data:{"text":"成功"}
+
+event:delta
+data:{"text":"。"}
+
+event:done
+data:{}
