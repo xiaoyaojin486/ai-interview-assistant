@@ -1,0 +1,19 @@
+F01 MySQL 连接检查
+检查日期：2026-10-24
+
+MySQL80 服务：
+Status=Running
+StartType=Automatic
+
+TCP 3306：
+TCP3306=True
+
+未提供管理员密码时的连接测试：
+mysqladmin: connect to server at 'localhost' failed
+error: 'Access denied for user 'ODBC'@'localhost' (using password: NO)'
+
+结论：
+MySQL 服务正在监听，服务器可达。
+管理员账号是否可以登录尚未验证。
+没有猜测密码，没有重置 MySQL，没有修改现有数据库。
+项目库和应用账号按计划留到 F06 创建。

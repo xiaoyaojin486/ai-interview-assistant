@@ -1,0 +1,19 @@
+spring:
+  application:
+    # 当前应用名称，后续会在日志和监控信息中使用。
+    name: interview-assistant
+
+server:
+  # 首版只在当前电脑访问，不直接暴露到局域网或公网。
+  address: 127.0.0.1
+  # 本机 8080 已被 WSL 转发进程占用，因此项目使用 8081。
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

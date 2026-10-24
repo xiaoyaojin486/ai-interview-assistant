@@ -1,0 +1,11 @@
+F02 应用健康检查
+执行日期：2026-10-24
+端口：8081
+
+GET http://127.0.0.1:8081/api/health
+{"status":"UP","application":"AI Interview Assistant","timestamp":"2026-10-23T17:22:19.768681500Z"}
+
+GET http://127.0.0.1:8081/actuator/health
+{"status":"UP","components":{"diskSpace":{"status":"UP"},"ping":{"status":"UP"},"ssl":{"status":"UP"}}}
+
+应用在检查完成后已关闭，不在后台保留测试进程。

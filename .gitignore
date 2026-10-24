@@ -1,0 +1,22 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+target/
+
+# Runtime data
+data/
+uploads/
+logs/
+*.log
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db

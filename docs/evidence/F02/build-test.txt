@@ -1,0 +1,11 @@
+F02 Maven 测试
+执行日期：2026-10-24
+命令：mvn test
+
+结果：
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+
+备注：
+首次在受限终端中因 Maven 本地仓库 D:\maven_repo 的写入权限失败；
+经授权在正常终端环境运行后通过。

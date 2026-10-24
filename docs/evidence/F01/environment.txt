@@ -1,0 +1,24 @@
+F01 环境预检
+检查日期：2026-10-24
+
+Java:
+openjdk version "21.0.10" 2026-01-20 LTS
+
+Maven:
+Apache Maven 3.6.3
+Java version: 21.0.10
+
+Git:
+git version 2.52.0.windows.1
+
+Node:
+v22.19.0
+
+npm:
+10.9.3
+
+Ollama:
+ollama version is 0.40.4
+
+OLLAMA_MODELS 用户环境变量已通过提权 PowerShell 设置为：
+D:\ollama-models

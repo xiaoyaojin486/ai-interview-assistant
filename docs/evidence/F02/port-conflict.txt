@@ -1,0 +1,16 @@
+F02 端口冲突记录
+检查日期：2026-10-24
+
+原计划端口：8080
+实际占用进程：
+PID 8852
+ProcessName: wslrelay
+Path: C:\Program Files\WSL\wslrelay.exe
+StartTime: 2026-10-16 10:24:12
+
+处理：
+该进程属于 WSL，不是本项目，因此没有强制关闭。
+项目 application.yml 改为仅监听 127.0.0.1:8081。
+
+结果：
+8081 启动成功，健康检查通过。

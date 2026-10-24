@@ -1,0 +1,22 @@
+F01 Ollama 与 BGE-M3 验证
+检查日期：2026-10-24
+
+用户环境变量设置：
+UserOLLAMA_MODELS=D:\ollama-models
+
+Ollama 服务：
+Version=0.40.4
+
+模型列表：
+NAME             ID              SIZE    MODIFIED
+bge-m3:latest    790764642607    1.2 GB  2 weeks ago
+
+模型信息：
+capabilities: embedding
+context_length: 8192
+embedding_length: 1024
+quantization_level: F16
+
+实际向量调用：
+EmbeddingCount=1
+Dimension=1024
