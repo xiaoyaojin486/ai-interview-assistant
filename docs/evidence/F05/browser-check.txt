@@ -1,0 +1,22 @@
+Date: 2026-10-24
+URL: http://127.0.0.1:8081/stream-demo.html
+
+Stop:
+- Stop button enabled while streaming.
+- Text length at stop: 63 characters.
+- Text length after waiting: 63 characters.
+- Status: 已停止生成.
+- Send button restored.
+
+Input limit:
+- Frontend maxlength: 2000.
+- Backend request with 2001 characters returned HTTP 400.
+
+Authentication error:
+- Invalid test key was supplied only as a startup argument.
+- Status: DeepSeek 鉴权失败，请检查 .env 中的 API Key。
+
+Network error:
+- Spring Boot was stopped while the page remained open.
+- Status: 网络连接失败，请检查网络后重试。
+- Send button restored.

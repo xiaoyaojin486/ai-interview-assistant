@@ -93,9 +93,34 @@
             background: #1058b4;
         }
 
+        #stop-button {
+            background: #526174;
+        }
+
+        #stop-button:hover:not(:disabled) {
+            background: #3d4a5b;
+        }
+
         button:disabled {
             cursor: wait;
             opacity: 0.6;
+        }
+
+        .label-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .label-row label {
+            margin-bottom: 0;
+        }
+
+        #character-count {
+            color: #6f7d90;
+            font-size: 13px;
         }
 
         #status {
@@ -132,11 +157,15 @@
     </p>
 
     <form id="chat-form">
-        <label for="message">你的问题</label>
-        <textarea id="message" name="message"
+        <div class="label-row">
+            <label for="message">你的问题</label>
+            <span id="character-count">0 / 2000</span>
+        </div>
+        <textarea id="message" name="message" maxlength="2000"
                   placeholder="例如：用三句话解释 Spring AI"></textarea>
         <div class="actions">
             <button id="send-button" type="submit">发送</button>
+            <button id="stop-button" type="button" disabled>停止生成</button>
             <span id="status" role="status" aria-live="polite">等待发送</span>
         </div>
     </form>
@@ -150,8 +179,14 @@
     const form = document.querySelector("#chat-form");
     const messageInput = document.querySelector("#message");
     const sendButton = document.querySelector("#send-button");
+    const stopButton = document.querySelector("#stop-button");
     const statusText = document.querySelector("#status");
     const result = document.querySelector("#result");
+    const characterCount = document.querySelector("#character-count");
+
+    const MAX_MESSAGE_LENGTH = 2000;
+    let activeController = null;
+    let stoppedByUser = false;
 
     function setStatus(text, isError = false) {
         statusText.textContent = text;
@@ -165,6 +200,16 @@
 
     function appendDelta(text) {
         result.textContent += text;
+    }
+
+    function updateCharacterCount() {
+        characterCount.textContent = `${messageInput.value.length} / ${MAX_MESSAGE_LENGTH}`;
+    }
+
+    function setStreamingState(isStreaming) {
+        sendButton.disabled = isStreaming;
+        stopButton.disabled = !isStreaming;
+        result.setAttribute("aria-busy", String(isStreaming));
     }
 
     function handleEvent(block) {
@@ -200,6 +245,16 @@
         }
     }
 
+    messageInput.addEventListener("input", updateCharacterCount);
+
+    stopButton.addEventListener("click", () => {
+        if (!activeController) {
+            return;
+        }
+        stoppedByUser = true;
+        activeController.abort();
+    });
+
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
@@ -210,7 +265,19 @@
             return;
         }
 
-        sendButton.disabled = true;
+        if (message.length > MAX_MESSAGE_LENGTH) {
+            setStatus(`消息不能超过 ${MAX_MESSAGE_LENGTH} 个字符`, true);
+            return;
+        }
+
+        if (activeController) {
+            return;
+        }
+
+        const controller = new AbortController();
+        activeController = controller;
+        stoppedByUser = false;
+        setStreamingState(true);
         resetResult();
         setStatus("正在连接 DeepSeek…");
 
@@ -221,11 +288,20 @@
                     "Content-Type": "application/json",
                     "Accept": "text/event-stream"
                 },
-                body: JSON.stringify({message})
+                body: JSON.stringify({message}),
+                signal: controller.signal
             });
 
             if (!response.ok) {
-                throw new Error(`请求失败（HTTP ${response.status}）`);
+                let serverError = null;
+                try {
+                    serverError = await response.json();
+                } catch {
+                    // 非 JSON 错误响应仍使用状态码提示。
+                }
+                throw new Error(
+                    serverError?.message || `请求失败（HTTP ${response.status}）`
+                );
             }
 
             if (!response.body) {
@@ -254,11 +330,22 @@
                 handleEvent(buffer);
             }
         } catch (error) {
-            setStatus(error.message || "网络请求失败，请稍后重试", true);
+            if (stoppedByUser || error.name === "AbortError") {
+                setStatus("已停止生成");
+            } else if (error instanceof TypeError) {
+                setStatus("网络连接失败，请检查网络后重试", true);
+            } else {
+                setStatus(error.message || "网络请求失败，请稍后重试", true);
+            }
         } finally {
-            sendButton.disabled = false;
+            if (activeController === controller) {
+                activeController = null;
+            }
+            setStreamingState(false);
         }
     });
+
+    updateCharacterCount();
 </script>
 </body>
 </html>

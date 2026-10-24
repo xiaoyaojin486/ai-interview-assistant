@@ -1,0 +1,4 @@
+HTTP/1.1 200
+Content-Type: text/event-stream
+Transfer-Encoding: chunked
+Date: Sat, 24 Oct 2026 12:35:02 GMT

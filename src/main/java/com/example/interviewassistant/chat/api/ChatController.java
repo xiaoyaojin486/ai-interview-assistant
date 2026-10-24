@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.interviewassistant.chat.application.ChatStreamErrorMapper;
 import com.example.interviewassistant.chat.application.ChatStreamingService;
 
 import reactor.core.publisher.Flux;
@@ -24,9 +25,13 @@ public class ChatController {
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
     private final ChatStreamingService chatStreamingService;
+    private final ChatStreamErrorMapper errorMapper;
 
-    public ChatController(ChatStreamingService chatStreamingService) {
+    public ChatController(
+            ChatStreamingService chatStreamingService,
+            ChatStreamErrorMapper errorMapper) {
         this.chatStreamingService = chatStreamingService;
+        this.errorMapper = errorMapper;
     }
 
     /**
@@ -41,9 +46,10 @@ public class ChatController {
                 .onErrorResume(error -> {
                     // 只记录异常类型，避免把完整 Prompt、密钥或底层响应写入日志。
                     log.warn("DeepSeek stream failed: {}", error.getClass().getSimpleName());
+                    var mappedError = errorMapper.map(error);
                     return Flux.just(event("error", Map.of(
-                            "code", "DEEPSEEK_ERROR",
-                            "message", "模型响应失败，请稍后重试")));
+                            "code", mappedError.code(),
+                            "message", mappedError.message())));
                 });
     }
 

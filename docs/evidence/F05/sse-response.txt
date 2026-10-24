@@ -1,0 +1,26 @@
+event:delta
+data:{"text":"F"}
+
+event:delta
+data:{"text":"05"}
+
+event:delta
+data:{"text":" "}
+
+event:delta
+data:{"text":"正常"}
+
+event:delta
+data:{"text":"流"}
+
+event:delta
+data:{"text":"测试"}
+
+event:delta
+data:{"text":"成功"}
+
+event:delta
+data:{"text":"。"}
+
+event:done
+data:{}

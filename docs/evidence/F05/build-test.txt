@@ -1,0 +1,13 @@
+Date: 2026-10-24
+
+Command: mvn clean test
+Result: BUILD SUCCESS
+Tests run: 21, Failures: 0, Errors: 0, Skipped: 1
+Skipped test: DeepSeekLiveTest (real API switch disabled)
+
+Command environment:
+RUN_LIVE_AI_TEST=true
+
+Command: mvn test -Dtest=com.example.interviewassistant.chat.application.DeepSeekLiveTest
+Result: BUILD SUCCESS
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0

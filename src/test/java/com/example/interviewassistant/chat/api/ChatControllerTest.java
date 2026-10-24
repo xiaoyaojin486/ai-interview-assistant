@@ -1,5 +1,6 @@
 package com.example.interviewassistant.chat.api;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -8,22 +9,28 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import com.example.interviewassistant.chat.application.ChatStreamErrorMapper;
 import com.example.interviewassistant.chat.application.ChatStreamingService;
 
 import reactor.core.publisher.Flux;
 
 @WebMvcTest(ChatController.class)
+@Import(ChatStreamErrorMapper.class)
 class ChatControllerTest {
 
     @Autowired
@@ -76,6 +83,46 @@ class ChatControllerTest {
     }
 
     /**
+     * 验证超过 2000 字的请求在进入模型前返回可读错误。
+     */
+    @Test
+    void rejectsMessageLongerThanLimitWithoutCallingModel() throws Exception {
+        mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"message":"%s"}
+                                """.formatted("a".repeat(2001))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("消息不能超过 2000 个字符"));
+
+        verifyNoInteractions(chatStreamingService);
+    }
+
+    /**
+     * 验证 2000 字边界仍然允许发送。
+     */
+    @Test
+    void acceptsMessageAtCharacterLimit() throws Exception {
+        String message = "a".repeat(2000);
+        when(chatStreamingService.stream(message)).thenReturn(Flux.just("ok"));
+
+        MvcResult initialResult = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("""
+                                {"message":"%s"}
+                                """.formatted(message)))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(initialResult))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("event:done")));
+    }
+
+    /**
      * 验证模型异常被转换为不含底层敏感信息的 error 事件。
      */
     @Test
@@ -100,5 +147,38 @@ class ChatControllerTest {
                         containsString("\"code\":\"DEEPSEEK_ERROR\""),
                         not(containsString("sensitive-upstream-detail")),
                         not(containsString("event:done")))));
+    }
+
+    /**
+     * 验证鉴权失败转换为可操作的 API Key 提示。
+     */
+    @Test
+    void mapsAuthenticationFailureToActionableErrorEvent() throws Exception {
+        when(chatStreamingService.stream("鉴权失败"))
+                .thenReturn(Flux.error(org.springframework.web.reactive.function.client
+                        .WebClientResponseException.create(
+                                401,
+                                "Unauthorized",
+                                org.springframework.http.HttpHeaders.EMPTY,
+                                new byte[0],
+                                java.nio.charset.StandardCharsets.UTF_8)));
+
+        MvcResult initialResult = mockMvc.perform(post("/api/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("""
+                                {"message":"鉴权失败"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        MvcResult completedResult = mockMvc.perform(asyncDispatch(initialResult))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(completedResult.getResponse().getContentAsString(StandardCharsets.UTF_8))
+                .contains("\"code\":\"DEEPSEEK_AUTH\"")
+                .contains("检查 .env 中的 API Key");
     }
 }
